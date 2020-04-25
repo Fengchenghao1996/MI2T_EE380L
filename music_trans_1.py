@@ -385,6 +385,7 @@ while(True):
     plt.plot(_samples[0, 1024:])
             
     _epoch += 1
+    print(_epoch)
     plt.savefig('music_trans/results_' + str(_epoch) + '.png')
     
     # Save the variables to disk.
