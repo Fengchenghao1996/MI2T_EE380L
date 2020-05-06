@@ -30,7 +30,7 @@ POOL_SIZE = 400
 '''
 INSTRUMENTS FILE LOAD
 '''
-
+#inst_paths can be altered according to where you restore your audio, the audio files are all 44.1kHz wav files
 inst_paths = ['./raw_1/pia', 
               './raw_1/cla', 
               './raw_1/gac'] 
@@ -43,11 +43,11 @@ for inst_path in inst_paths:
 '''
 INSTRUMENTS AUDIO LOAD
 '''
-
+#The length of data we choose, for 8kHz file, it is about 1.25 seconds
 T = 10000
 
 inst_waves_list = []
-
+# You can change 44100 to the sampling rate you use, we resample the audio data to 8k for data pre-processing
 inst_index = 0
 for inst_files in inst_files_list:
     
@@ -79,7 +79,7 @@ INSTRUMENTS_NUM = len(inst_waves_list)
 '''
 DEFINE WAVENET FUNTIONS
 '''
-
+#The layers we use, they are almost the same with the original code
 def mulaw(x, MU):
     return tf.sign(x) * tf.log(1. + MU * tf.abs(x)) / tf.log(1. + MU)
 
@@ -137,6 +137,7 @@ def upsample(inputs, output_size, channel):
     outputs = tf.reshape(outputs, [tf.shape(outputs)[0], tf.shape(outputs)[1], channel])
     return outputs[:, -output_size:]
 
+#We name the variables in the domain confusion layer. Very important!
 def domain_confusion(inputs, layers, domain_num, h_filters):
     with tf.variable_scope("discriminator"):
         outputs = inputs
@@ -167,6 +168,8 @@ class FlipGradientBuilder(object):
         return y
     
 flip_gradient1 = FlipGradientBuilder()
+
+#We make serval imprtant changes in graph draw
 
 '''
 
@@ -224,6 +227,10 @@ label_tiled = tf.tile(tf.expand_dims(label_holder, axis=0), [tf.shape(label_pred
 
 # loss
 domain_confusion_loss = tf.losses.sparse_softmax_cross_entropy(labels=label_tiled, logits=label_predicts)
+
+
+#Change 1: According to facebook's paper, we believe the domain confusion layer should be trained seperately
+#Only the discriminator will be trained in this step
 D_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'discriminator')
 train_step_0 = tf.train.AdamOptimizer(1e-3).minimize(domain_confusion_loss, var_list = D_vars)
 
@@ -259,6 +266,8 @@ for instrument_index in range(INSTRUMENTS_NUM):
 decode_losses = tf.stack(decode_losses, axis=0) * tf.one_hot(label_holder, depth=INSTRUMENTS_NUM)
 decode_losses = tf.reduce_mean(decode_losses)
 
+#The regularization term should be negative.
+#We only train the generator (encoder and decoder) in this step
 loss = decode_losses - 0.02*domain_confusion_loss
 G_vars_0 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'wavenet_encoder') 
 G_vars_1= tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'wavenet_decoder') 
