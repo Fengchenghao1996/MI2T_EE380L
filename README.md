@@ -7,6 +7,9 @@ https://arxiv.org/abs/1805.07848
 The codes we modify come from:
 https://github.com/scpark20/universal-music-translation
 The "music_trans.ipynb" is the original code from this URL
+
+
+
 Environment:
 GPU >= GTX 1080， 8GB RAM
 Dataset: IRMAS
